@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String         @id
+  name               String
+  tel                String
+  email              String         @unique
+  password           String
+  profileImage       ProfileImage?
+  role               Role
+  stayedAt           StayedAt?
+  room               Room?          @relation(fields: [roomId], references: [number])
+  roomId             String?
+  unreadNotification Int            @default(0)
+  reports            Report[]
+  notifications      Notification[]
+  payments           Payment[]
+
+  @@index([email])
+}
+
+enum Role {
+  ADMIN
+  RESIDENT
+}
+
+model StayedAt {
+  userId   String   @unique
+  user     User     @relation(fields: [userId], references: [id])
+  stayedAt DateTime
+}
+
+model ProfileImage {
+  key    String?
+  url    String  @default("/unknown-profile-image.jpg")
+  userId String  @unique
+  user   User    @relation(fields: [userId], references: [id])
+}
+
+model Room {
+  number       String        @id
+  floor        Int
+  description  String?       @default("")
+  price        Int           @db.UnsignedInt()
+  residents    User[]
+  monthlyRents MonthlyRent[]
+}
+
+model Report {
+  id            String         @id
+  description   String         @db.VarChar(2048)
+  reportImages  ReportImage[]
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  status        ReportStatus
+  createdAt     DateTime
+  notifications Notification[]
+}
+
+enum ReportStatus {
+  WAITING
+  ACCEPTED
+  COMPLETED
+}
+
+model ReportImage {
+  id       String @id
+  reportId String
+  report   Report @relation(fields: [reportId], references: [id])
+  key      String
+  url      String
+}
+
+model Notification {
+  id            String           @id
+  type          NotificationType
+  toUserId      String
+  toUser        User             @relation(fields: [toUserId], references: [id])
+  reportId      String?
+  report        Report?          @relation(fields: [reportId], references: [id])
+  monthlyRentId String?
+  monthlyRent   MonthlyRent?     @relation(fields: [monthlyRentId], references: [id])
+  createdAt     DateTime
+}
+
+enum NotificationType {
+  REPORT_NEW
+  REPORT_ACCEPTED
+  REPORT_COMPLETED
+  MONTHLY_RENT
+  PAYMENT_ACCEPTED
+  PAYMENT_REJECTED
+}
+
+model MonthlyRent {
+  id              String         @id
+  roomId          String
+  room            Room           @relation(fields: [roomId], references: [number])
+  electricityUnit Int            @default(0)
+  waterUnit       Int            @default(0)
+  result          Int            @default(0)
+  notifications   Notification[]
+  payment         Payment?
+}
+
+model Payment {
+  id            String        @id
+  monthlyRentId String        @unique
+  monthlyRent   MonthlyRent   @relation(fields: [monthlyRentId], references: [id])
+  slipImage     SlipImage?
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  status        PaymentStatus
+  createdAt     DateTime
+}
+
+enum PaymentStatus {
+  ACCEPTED
+  REJECTED
+}
+
+model SlipImage {
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+  key       String
+  url       String
+}
