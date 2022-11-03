@@ -1,10 +1,14 @@
 import Redis from "ioredis";
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectRedis } from "@liaoliaots/nestjs-redis";
 
 @Injectable()
 export class RedisManagerService {
     constructor(@InjectRedis() private redis: Redis) {}
+
+    getAllKeys() {
+        return this.redis.keys("*");
+    }
 
     setNewJoinedClient(userId: string, socketId: string): Promise<number> {
         return new Promise(async (resolve, reject) => {
@@ -37,5 +41,26 @@ export class RedisManagerService {
                 reject(e);
             }
         });
+    }
+
+    async getAllClientSocketIds(
+        initSocketIds: string[][],
+        allKeys: string[],
+        curIndex=0,
+    ): Promise<string[][]> {
+        try {
+            if (allKeys.length === 0) {
+                return initSocketIds;
+            }
+            const socketIds = await this.redis.smembers(
+                allKeys[curIndex],
+            );
+            initSocketIds.push(socketIds);
+            allKeys.shift();
+            curIndex++;
+            return this.getAllClientSocketIds(initSocketIds, allKeys);
+        } catch (e) {
+            throw new InternalServerErrorException();
+        }
     }
 }

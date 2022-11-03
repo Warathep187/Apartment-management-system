@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Payment` MODIFY `status` ENUM('WAITING', 'ACCEPTED', 'REJECTED') NOT NULL;

@@ -1,3 +1,8 @@
+import {
+    ConflictException,
+    NotFoundException,
+} from "@nestjs/common/exceptions";
+import { UpdateReportDescriptionDto } from "./dto/update-report-desc.dto";
 import { UpdateReportStatusDto } from "./dto/update-report-status.dto";
 import { RealtimeManagerService } from "./../realtime-manager/realtime-manager.service";
 import { RedisManagerService } from "./../redis-manager/redis-manager.service";
@@ -60,6 +65,12 @@ export class ReportsService {
         return this.uploadMultipleImage(uploadedImages, images);
     }
 
+    async removeMultipleImage(reportImages: { key: string }[]): Promise<void> {
+        for (const image of reportImages) {
+            await this.s3ManagerService.removeObjectFromS3(image.key);
+        }
+    }
+
     async sendNotificationToAdmin(notification: Notification) {
         const socketIds =
             await this.redisManagerService.getSpecifiedClientSocketIds(
@@ -81,6 +92,24 @@ export class ReportsService {
                 },
             },
         });
+    }
+
+    async verifyReportOwner(userId: string, reportId: string): Promise<void> {
+        const report = await this.prismaClient.report.findUnique({
+            where: {
+                id: reportId,
+            },
+            select: {
+                id: true,
+                userId: true,
+            },
+        });
+        if (!report) {
+            throw new NotFoundException("Report not found");
+        }
+        if (userId !== report.userId) {
+            throw new ConflictException("Access denied");
+        }
     }
 
     async createNewReport(
@@ -205,6 +234,58 @@ export class ReportsService {
         });
     }
 
+    async ownerGetSpecifiedReport(userId: string, reportId: string) {
+        await this.verifyReportOwner(userId, reportId);
+        return this.prismaClient.report.findUnique({
+            where: {
+                id: reportId,
+            },
+            select: {
+                id: true,
+                description: true,
+                reportImages: {
+                    select: {
+                        id: true,
+                        url: true,
+                    },
+                },
+                status: true,
+                createdAt: true,
+            },
+        });
+    }
+
+    async adminGetSpecifiedReport(reportId: string) {
+        return this.prismaClient.report.findUnique({
+            where: {
+                id: reportId,
+            },
+            select: {
+                id: true,
+                description: true,
+                reportImages: {
+                    select: {
+                        url: true,
+                        id: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        profileImage: {
+                            select: {
+                                url: true,
+                            },
+                        },
+                    },
+                },
+                status: true,
+                createdAt: true,
+            },
+        });
+    }
+
     async updateReportStatus(
         reportId: string,
         updateReportStatusDto: UpdateReportStatusDto,
@@ -251,7 +332,7 @@ export class ReportsService {
                 data: {
                     id: uuid(),
                     type: notificationType,
-                    toUserId: process.env.ADMIN_ID,
+                    toUserId: updatedReport.user.id,
                     reportId: updatedReport.id,
                     createdAt: new Date(),
                 },
@@ -262,5 +343,101 @@ export class ReportsService {
             );
         }
         return updatedReport;
+    }
+
+    async updateReportDescription(
+        userId: string,
+        reportId: string,
+        updateReportDescriptionDto: UpdateReportDescriptionDto,
+    ) {
+        await this.verifyReportOwner(userId, reportId);
+
+        await this.prismaClient.report.update({
+            where: {
+                id: reportId,
+            },
+            data: {
+                description: updateReportDescriptionDto.description,
+            },
+        });
+    }
+
+    async addReportImage(
+        userId: string,
+        reportId: string,
+        image: Express.Multer.File,
+    ): Promise<string> {
+        await this.verifyReportOwner(userId, reportId);
+
+        const count = await this.prismaClient.reportImage.count({
+            where: {
+                reportId,
+            },
+        });
+        if (count === 4) {
+            throw new ConflictException("Report image is full");
+        }
+        const uploadedImage = await this.s3ManagerService.uploadToS3(
+            "report-images",
+            image,
+        );
+        await this.prismaClient.reportImage.create({
+            data: {
+                id: uuid(),
+                key: uploadedImage.key,
+                url: uploadedImage.url,
+                reportId,
+            },
+        });
+        return uploadedImage.url;
+    }
+
+    async removeReportImage(userId: string, reportId: string, imageId: string) {
+        await this.verifyReportOwner(userId, reportId);
+
+        const reportImage = await this.prismaClient.reportImage.findUnique({
+            where: {
+                id: imageId,
+            },
+            select: {
+                key: true,
+            },
+        });
+
+        await this.s3ManagerService.removeObjectFromS3(reportImage.key);
+        await this.prismaClient.reportImage.delete({
+            where: {
+                id: imageId,
+            },
+        });
+    }
+
+    async deleteReport(userId: string, reportId: string) {
+        await this.verifyReportOwner(userId, reportId);
+        await this.prismaClient.notification.deleteMany({
+            where: {
+                reportId,
+            },
+        });
+        const reportImages = await this.prismaClient.reportImage.findMany({
+            where: {
+                reportId,
+            },
+            select: {
+                key: true,
+            },
+            take: 4,
+        });
+        await this.prismaClient.reportImage.deleteMany({
+            where: {
+                reportId,
+            },
+        });
+        await this.prismaClient.report.delete({
+            where: {
+                id: reportId,
+            },
+        });
+        this.removeMultipleImage(reportImages);
     }
 }

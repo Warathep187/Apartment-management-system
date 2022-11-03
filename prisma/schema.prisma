@@ -38,7 +38,7 @@ model StayedAt {
 }
 
 model ProfileImage {
-  key    String?
+  key    String? @unique
   url    String  @default("/unknown-profile-image.jpg")
   userId String  @unique
   user   User    @relation(fields: [userId], references: [id])
@@ -74,20 +74,39 @@ model ReportImage {
   id       String @id
   reportId String
   report   Report @relation(fields: [reportId], references: [id])
-  key      String
+  key      String @unique
   url      String
 }
 
+model Announcement {
+  id                 String              @id
+  title              String
+  description        String
+  announcementImages AnnouncementImage[]
+  Notification       Notification[]
+  createdAt          DateTime            @default(now())
+}
+
+model AnnouncementImage {
+  id             String       @id
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id])
+  key            String       @unique
+  url            String
+}
+
 model Notification {
-  id            String           @id
-  type          NotificationType
-  toUserId      String
-  toUser        User             @relation(fields: [toUserId], references: [id])
-  reportId      String?
-  report        Report?          @relation(fields: [reportId], references: [id])
-  monthlyRentId String?
-  monthlyRent   MonthlyRent?     @relation(fields: [monthlyRentId], references: [id])
-  createdAt     DateTime
+  id             String           @id
+  type           NotificationType
+  toUserId       String
+  toUser         User             @relation(fields: [toUserId], references: [id])
+  reportId       String?
+  report         Report?          @relation(fields: [reportId], references: [id])
+  monthlyRentId  String?
+  monthlyRent    MonthlyRent?     @relation(fields: [monthlyRentId], references: [id])
+  announcementId String?
+  announcement   Announcement?    @relation(fields: [announcementId], references: [id])
+  createdAt      DateTime
 }
 
 enum NotificationType {
@@ -97,17 +116,27 @@ enum NotificationType {
   MONTHLY_RENT
   PAYMENT_ACCEPTED
   PAYMENT_REJECTED
+  ANNOUNCEMENT_NEW
 }
 
 model MonthlyRent {
-  id              String         @id
+  id              String           @id
   roomId          String
-  room            Room           @relation(fields: [roomId], references: [number])
-  electricityUnit Int            @default(0)
-  waterUnit       Int            @default(0)
-  result          Int            @default(0)
+  room            Room             @relation(fields: [roomId], references: [number])
+  electricityUnit Int              @default(0)
+  waterUnit       Int              @default(0)
+  result          Int              @default(0)
+  monthlyRentFile MonthlyRentFile?
   notifications   Notification[]
   payment         Payment?
+  createdAt       DateTime
+}
+
+model MonthlyRentFile {
+  monthlyRentId String      @unique
+  monthlyRent   MonthlyRent @relation(fields: [monthlyRentId], references: [id])
+  url           String
+  key           String
 }
 
 model Payment {
@@ -122,6 +151,7 @@ model Payment {
 }
 
 enum PaymentStatus {
+  WAITING
   ACCEPTED
   REJECTED
 }
@@ -129,6 +159,6 @@ enum PaymentStatus {
 model SlipImage {
   paymentId String  @unique
   payment   Payment @relation(fields: [paymentId], references: [id])
-  key       String
+  key       String  @unique
   url       String
 }

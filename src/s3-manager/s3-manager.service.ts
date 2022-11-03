@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectAwsService } from "nest-aws-sdk";
 import { S3 } from "aws-sdk";
 import { v4 as uuid } from "uuid";
+const fs = require("fs");
 
 @Injectable()
 export class S3ManagerService {
@@ -30,14 +31,37 @@ export class S3ManagerService {
     uploadToS3(
         folder: string,
         file: Express.Multer.File,
-    ): Promise<{url: string, key: string}> {
+    ): Promise<{ url: string; key: string }> {
         return new Promise(async (resolve, reject) => {
             try {
                 const params = this.getUploadImageParams(folder, file);
                 const result = await this.s3.upload(params).promise();
                 resolve({
                     url: result.Location,
-                    key: result.Key
+                    key: result.Key,
+                });
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+    uploadPdfFileToS3(fileSrc: string): Promise<{ url: string; key: string }> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const fileStream = fs.createReadStream(fileSrc);
+                const now = new Date();
+                const params = {
+                    Bucket: process.env.AWS_S3_BUCKET,
+                    Key: `monthly-rents/${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${uuid()}.pdf`,
+                    Body: fileStream,
+                    ACL: "public-read",
+                    ContentType: "application/pdf",
+                };
+                const uploadedFile = await this.s3.upload(params).promise();
+                resolve({
+                    url: uploadedFile.Location,
+                    key: uploadedFile.Key,
                 });
             } catch (e) {
                 reject(e);

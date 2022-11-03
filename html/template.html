@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Monthly Rent For {{this.roomId}}</title>
+    </head>
+    <body>
+        <h1>Monthly Rent For {{this.roomId}}</h1>
+        <table style="border-collapse: collapse">
+            <tr>
+                <th
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                        text-align: center;
+                    "
+                >
+                    Description
+                </th>
+                <th
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                        text-align: center;
+                    "
+                >
+                    Amount (THB)
+                </th>
+            </tr>
+            <tr>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    Room Rent
+                </td>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    {{this.roomPrice}}
+                </td>
+            </tr>
+            <tr>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    Electricity Unit Used
+                </td>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    {{this.electricityUnit}}
+                </td>
+            </tr>
+            <tr>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    Electricity Price
+                </td>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    {{this.electricityPrice}}
+                </td>
+            </tr>
+            <tr>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    Water Unit Used
+                </td>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    {{this.waterUnit}}
+                </td>
+            </tr>
+            <tr>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    Water Price
+                </td>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    {{this.waterPrice}}
+                </td>
+            </tr>
+            <tr>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    <b>Result</b>
+                </td>
+                <td
+                    style="
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 8px;
+                    "
+                >
+                    <b>{{this.result}}</b>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

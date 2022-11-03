@@ -44,8 +44,37 @@ export class NotificationsService {
                         result: true,
                     }
                 },
+                announcement: {
+                    select: {
+                        id: true,
+                        title: true,
+                    }
+                },
                 createdAt: true
             }
         })
+    }
+
+    async readNotifications(userId: string) {
+        await this.prismaClient.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+                unreadNotification: 0
+            }
+        })
+    }
+
+    async getTotalUnreadNotifications(userId: string): Promise<number> {
+        const user = await this.prismaClient.user.findUnique({
+            where: {
+                id: userId
+            },
+            select: {
+                unreadNotification: true
+            }
+        })
+        return user.unreadNotification;
     }
 }
